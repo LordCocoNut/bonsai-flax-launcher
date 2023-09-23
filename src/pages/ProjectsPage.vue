@@ -1,6 +1,5 @@
 <template>
-  <div class="row text-center">
-
+  <div>
     <q-dialog v-model="createDialog" persistent>
       <q-card style="min-width: 350px">
         <q-card-section>
@@ -20,27 +19,29 @@
     </q-dialog>
 
 
-
-    <div class="col-12 q-mb-xl">
-      <p>Here are your projects</p>
-      <p v-if="!SharedStore.engineInfo.installed">You dont have engine installed. Install one before opening a project.
-      </p>
-      <q-btn v-if="SharedStore.engineInfo.installed" @click="createDialog = true" color="primary"
-        label="Create new one" />
-    </div>
-    <div class="col-12 q-px-lg">
-      <q-card class="my-card shadow-0 cursor-pointer" v-for="project in SharedStore.projectList" :key="project.name"
-        @click="openProject(project.name)">
-        <q-img :src="project.icon">
-          <div class="text-subtitle2 absolute-top text-center">
-            {{ project.name }}
+    <div class="column text-center">
+      <div class="full-width projects-header q-py-lg">
+        <p>Here are your projects</p>
+        <p v-if="!SharedStore.engineInfo.installed">You dont have engine installed. Install one before opening a project.
+        </p>
+        <q-btn v-if="SharedStore.engineInfo.installed" @click="createDialog = true" color="primary"
+          label="Create new one" />
+      </div>
+      <div class="full-width projects-list">
+        <q-scroll-area class="full-width full-height">
+          <div class="q-pa-md row items-start q-gutter-md">
+            <q-card v-for="project in SharedStore.projectList" :key="project.name"
+              class="my-card shadow-0 cursor-pointer q-mb-lg" @click="openProject(project.name)">
+              <q-img :src="project.icon">
+                <div class="text-subtitle2 absolute-top text-center">
+                  {{ project.name }}
+                </div>
+              </q-img>
+            </q-card>
           </div>
-        </q-img>
-      </q-card>
-
-
+        </q-scroll-area>
+      </div>
     </div>
-
   </div>
 </template>
 
@@ -49,7 +50,6 @@ import { head, join, map, pipe, replace, split, tail, toLower, toUpper } from 'r
 import { SharedStore } from 'src/utils';
 import { ref } from 'vue';
 
-const refreshProjects = projectsApi.refreshProjectList;
 const openProject = projectApi.openProject;
 const createProject = projectApi.createProject;
 
@@ -77,9 +77,17 @@ const onCreateSubmit = () => {
 }
 
 .my-card {
-  width: 100%;
-  background-position: center;
-  background-size: cover;
-  max-width: 33%;
+  flex: 1 0 29%;
+  min-width: 250px;
+}
+
+.projects-header {
+  height: 20vh;
+  margin-top: -48px;
+}
+
+.projects-list {
+  height: 70vh;
+  width:100%;
 }
 </style>

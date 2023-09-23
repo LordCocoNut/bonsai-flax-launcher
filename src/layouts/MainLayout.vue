@@ -9,8 +9,8 @@
       </q-bar>
     </q-header>
 
-    <q-drawer show-if-above :width="250" :breakpoint="700"
-      :class="[{ 'bg-primary': !$q.dark, 'bg-dark': $q.dark }, 'text-white']">
+    <q-drawer show :width="250" :breakpoint="500" :class="[{ 'bg-primary': !$q.dark, 'bg-dark': $q.dark }, 'text-white']"
+      v-model="drawer">
       <q-list>
         <q-item v-for="link in navSectionLinks" :key="link.label" :active-class="$q.dark ? 'bg-grey-8' : 'bg-blue-8'"
           :to="link.route" clickable v-ripple>
@@ -39,11 +39,13 @@
 <script setup>
 import { PAGE_NAMES } from 'src/router/routes';
 import { SharedStore, toPage } from 'src/utils';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const toggleFullscreen = windowApi.toggleFulscreen;
 const close = windowApi.close;
 const minimize = windowApi.minimize;
+
+const drawer = ref(true);
 
 const toolbarBtns = [
   { icon: "minimize", click: minimize },

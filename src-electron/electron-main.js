@@ -40,7 +40,7 @@ const COMMANDS = {
     exec(`${editor_run_binary} -new -project ${projects_path}/${project}`),
   OpenProject: (project) =>
     exec(
-      `${editor_run_binary} -project /home/bonsai/GameDev/flax_games/${project}`
+      `${editor_run_binary} -project ${projects_path}/${project}`
     ),
 };
 
