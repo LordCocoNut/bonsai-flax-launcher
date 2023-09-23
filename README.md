@@ -19,3 +19,7 @@ Download the build, unzip and run FlaxEngineLauncher binary. To install an engin
 ## Known bugs
 
 - exiting launcher during engine download doesnt require confirmation
+- project list is not refreshed when new project is created
+
+## Keep in mind
+- creating project may take some time, please be patient after submitting the project creation
