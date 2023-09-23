@@ -34,7 +34,7 @@
               class="my-card shadow-0 cursor-pointer q-mb-lg" @click="openProject(project.name)">
               <q-img :src="project.icon">
                 <div class="text-subtitle2 absolute-top text-center">
-                  {{ project.name }}
+                  {{ formatProjectName(project.name) }}
                 </div>
               </q-img>
             </q-card>
