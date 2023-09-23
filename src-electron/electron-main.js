@@ -103,12 +103,6 @@ function registerListeners() {
         filePaths.length && event.reply("on-file-select", filePaths[0]);
       });
   });
-
-  ipcMain.on("open-recent-project", () => {
-    exec(
-      "/home/bonsai/GameDev/flax_engine/Binaries/Editor/Linux/Development/FlaxEditor --project /home/bonsai/GameDev/flax_games/bygone_farm"
-    );
-  });
 }
 
 //Installation handler
