@@ -2,7 +2,7 @@
   <q-layout view="hHh Lpr lff">
     <q-header>
       <q-bar :class="[{ 'bg-primary': !$q.dark, 'bg-dark': $q.dark }, 'text-white']">
-        <span class="window-title">Flax Engine - Linux Edition</span>
+        <span class="window-title">Flax Engine Launcher - Linux Edition</span>
         <q-space class="title-bar" />
         <q-btn v-for="toolbarBtn in toolbarBtns" :key="toolbarBtn.icon" dense flat v-bind="toolbarBtn"
           @click="toolbarBtn.click" />

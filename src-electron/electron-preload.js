@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld("projectApi", {
 contextBridge.exposeInMainWorld("engineApi", {
   openRecentProject: () => ipcRenderer.send("install"),
   installEngine: () => ipcRenderer.invoke("install-engine"),
+  installBuildTools: () => ipcRenderer.invoke("install-build-tools"),
   handleDownloadInitiated: (cback) =>
     ipcRenderer.on("engine-download-initiated", cback),
   handleDownloadedBatch: (cback) =>
@@ -40,6 +41,11 @@ contextBridge.exposeInMainWorld("engineApi", {
     ipcRenderer.on("engine-install-started", cback),
   handleInstallFinished: (cback) =>
     ipcRenderer.on("engine-install-finished", cback),
+
+  handleBtoolsDownloadInitiated: (cback) => ipcRenderer.on("btools-download-initiated", cback),
+  handleBtoolsDownloadedBatch: (cback) => ipcRenderer.on("btools-download-progress", cback),
+  handleBtoolsDownloadFinished: (cback) => ipcRenderer.on("btools-download-finished", cback),
+  handleBtoolsInstallFinished: (cback) => ipcRenderer.on("btools-install-finished", cback),
 
   refreshEngineInfo: () => ipcRenderer.invoke("refresh-engine-info"),
 });

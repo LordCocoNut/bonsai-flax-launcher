@@ -23,6 +23,32 @@
       <q-icon name="done" size="4rem" />
     </div>
   </div>
+
+  <hr />
+  <div class="row text-center q-mt-md" v-if="!SharedStore.btoolsInfo.installed">
+    <div class="col-12 q-mb-xl">
+      <p>You didnt install linux build tools yet.</p>
+      <q-btn @click="installBuildTools" color="primary"
+        v-if="!SharedStore.btoolsIsInstalling && !SharedStore.btoolsIsDownloading" label="Download build tools" />
+
+      <p v-if="SharedStore.btoolsIsInstalling">Installation in progress</p>
+      <p v-else-if="SharedStore.btoolsIsDownloading">Downloading in progress</p>
+    </div>
+    <div class="col-12 q-px-sm" v-if="SharedStore.btoolsIsDownloading">
+      <q-linear-progress dark stripe rounded size="20px" :value="downloadBtoolsProgressPercentil" color="primary"
+        class="q-mt-sm" />
+    </div>
+    <div class="col-12 q-px-sm" v-else-if="SharedStore.btoolsIsInstalling">
+      <q-linear-progress dark rounded indeterminate color="secondary" size="20px" class="q-mt-sm" />
+    </div>
+
+  </div>
+  <div class="row text-center q-mt-md" v-else>
+    <div class="col-12 q-mb-xl">
+      <p class="q-mb-none">You have Linux build tools nstalled</p>
+      <q-icon name="done" size="4rem" />
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -33,15 +59,19 @@ import { computed, ref } from 'vue';
 
 const { refreshInstallationInfo } = useEngineInfo();
 const installEngine = engineApi.installEngine;
+const installBuildTools = engineApi.installBuildTools;
 
 const maxSize = ref(0);
 const downloaded = ref(0);
 
 const downloadProgressPercentil = computed(() => SharedStore.engineIsDownloading ? min(1, Math.round(downloaded.value / maxSize.value * 100) / 100) : 0);
+const downloadBtoolsProgressPercentil = computed(() => SharedStore.btoolsIsDownloading ? min(1, Math.round(downloaded.value / maxSize.value * 100) / 100) : 0);
 
+
+///TODO:  remove redudant code by creating abstract methods instead of copy pasting them as we need same process for each operation
 
 engineApi.handleInstallFinished(() => {
-  SharedStore.engineIsInstalling = true;
+  SharedStore.engineIsInstalling = false;
   refreshInstallationInfo()
 });
 
@@ -57,6 +87,22 @@ engineApi.handleDownloadFinished(() => {
   SharedStore.engineIsInstalling = true;
 });
 
+
+engineApi.handleBtoolsDownloadInitiated((_e, maxSizeNew) => {
+  SharedStore.btoolsIsDownloading = true;
+  maxSize.value = maxSizeNew;
+});
+
+engineApi.handleBtoolsDownloadedBatch((e, downloadedDataSize) => downloaded.value += downloadedDataSize);
+engineApi.handleBtoolsDownloadFinished(() => {
+  downloaded.value = 0;
+  SharedStore.btoolsIsDownloading = false;
+  SharedStore.btoolsIsInstalling = true;
+});
+engineApi.handleBtoolsInstallFinished(() => {
+  SharedStore.btoolsIsInstalling = false;
+  refreshInstallationInfo()
+});
 </script>
 
 <style>

@@ -1,13 +1,12 @@
 import { exec } from "child_process";
-import decompress from "decompress";
 import { BrowserWindow, app, dialog, ipcMain, nativeTheme } from "electron";
 import * as fs from "fs";
 import { ClientRequest } from "http";
-import * as https from "https";
 import os from "os";
 import path from "path";
 import { forEach, map } from "ramda";
-import { SharedStore, engineInfoTemplate, ensureFolderExists } from "src/utils";
+import { engineInfoTemplate, ensureFolderExists, installData } from "src/utils";
+import decompress from "decompress";
 
 /**
  * Electron main serves as the centrum for NodeJs operations. Those operations are than synced via api created using electron-preload.js. Thus,
@@ -18,8 +17,9 @@ import { SharedStore, engineInfoTemplate, ensureFolderExists } from "src/utils";
 //Define paths to filesystems
 const system_engine_install_path = `${app.getPath("home")}/.flax-engine`;
 const system_engine_editor_path = `${system_engine_install_path}/editor`;
+const system_engine_editor_build_tools_path = `${system_engine_editor_path}/Source/Platforms/Linux`;
 const flax_proj_info = `${system_engine_editor_path}/Flax.flaxproj`;
-const download_engine_tmp = `${system_engine_install_path}/download`;
+const download_tmp_folder = `${system_engine_install_path}/download`;
 const editor_run_binary = `${system_engine_editor_path}/Binaries/Editor/Linux/Development/FlaxEditor`;
 const projects_path = `${system_engine_install_path}/projects`;
 const project_icon_path = `Cache/icon.png`;
@@ -39,9 +39,7 @@ const COMMANDS = {
   CreateProject: (project) =>
     exec(`${editor_run_binary} -new -project ${projects_path}/${project}`),
   OpenProject: (project) =>
-    exec(
-      `${editor_run_binary} -project ${projects_path}/${project}`
-    ),
+    exec(`${editor_run_binary} -project ${projects_path}/${project}`),
 };
 
 //Check system folders exists and create them if not
@@ -105,51 +103,6 @@ function registerListeners() {
   });
 }
 
-//Installation handler
-ipcMain.handle("install-engine", () => {
-  ensureFolderExists(download_engine_tmp);
-
-  downloadRequest = https.get(
-    "https://vps2.flaxengine.com/store/builds/Package_1_06_06344/FlaxEditorLinux.zip",
-    (res) => {
-      const downloadFileName = `${system_engine_install_path}/download/linux-editor.zip`;
-
-      // Data will be stored at this path
-      const filePath = fs.createWriteStream(downloadFileName);
-      res.pipe(filePath);
-
-      const resourceSize = res.headers["content-length"];
-      mainWindow.webContents.send("engine-download-initiated", resourceSize);
-
-      //Trigger download data amount update
-      res.on("readable", () => {
-        while (mainWindow && null !== (chunk = res.read())) {
-          mainWindow.webContents.send("engine-download-progress", chunk.length);
-        }
-      });
-
-      filePath.on("finish", () => {
-        downloadRequest = undefined;
-        filePath.close();
-        //Triger download finished event
-
-        mainWindow.webContents.send("engine-download-finished");
-        //Trigger start of installation event
-
-        //Unpack all files in downloaded zip to the engine editor path
-        decompress(downloadFileName, system_engine_editor_path)
-          .then(() => {
-            mainWindow.webContents.send("engine-install-finished");
-          })
-          .catch((error) => {
-            //TODO: this is pretty much useless we need better error handling
-            console.log(error);
-          });
-      });
-    }
-  );
-});
-
 ipcMain.handle("refresh-projects", () =>
   map(
     (folder) => ({
@@ -199,7 +152,53 @@ ipcMain.handle("create-project", (e, name) => {
   mainWindow.webContents.send("project-created");
 });
 
-app.whenReady().then(registerListeners).then(createWindow);
+app
+  .whenReady()
+  .then(registerListeners)
+  .then(createWindow)
+  .then(() => {
+    const installEngine = installData(
+      "https://vps2.flaxengine.com/store/builds/Package_1_06_06344/FlaxEditorLinux.zip",
+      mainWindow,
+      decompress
+    );
+
+    const installBuildTools = installData(
+      "https://vps2.flaxengine.com/store/builds/Package_1_06_06344/Linux.zip",
+      mainWindow,
+      decompress
+    );
+
+    //Engine installation handler
+    ipcMain.handle("install-engine", () =>
+      installEngine(
+        `${system_engine_install_path}/download/linux-editor.zip`,
+        download_tmp_folder,
+        system_engine_editor_path,
+        {
+          downloadStart: "engine-download-initiated",
+          downloadProgress: "engine-download-progress",
+          downloadFinished: "engine-download-finished",
+          installFinished: "engine-install-finished",
+        }
+      )
+    );
+
+    //Linux build tools installation handler
+    ipcMain.handle("install-build-tools", () =>
+      installBuildTools(
+        `${system_engine_install_path}/download/linux-build-tools.zip`,
+        download_tmp_folder,
+        system_engine_editor_build_tools_path,
+        {
+          downloadStart: "btools-download-initiated",
+          downloadProgress: "btools-download-progress",
+          downloadFinished: "btools-download-finished",
+          installFinished: "btools-install-finished",
+        }
+      )
+    );
+  });
 
 app.on("window-all-closed", () => {
   if (platform !== "darwin") {
