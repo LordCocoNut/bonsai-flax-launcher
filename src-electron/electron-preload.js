@@ -18,6 +18,7 @@ const ipcInvoke =
 
 contextBridge.exposeInMainWorld("dialogAPI", {
   openFileDialog: () => ipcRenderer.send("open-file-dialog"),
+  ensureProjectFolder: () => ipcRenderer.invoke("ensure-project-folder"),
 });
 
 contextBridge.exposeInMainWorld("projectApi", {
@@ -25,6 +26,8 @@ contextBridge.exposeInMainWorld("projectApi", {
   openProject: (name) => ipcRenderer.invoke("open-project", name),
   createProject: ipcInvoke("create-project"),
   handleProjectCreated: (cback) => ipcRenderer.on("project-created", cback),
+  handleProjectFolderSet: (cback) => ipcRenderer.on("project-folder-set", cback),
+
 });
 
 contextBridge.exposeInMainWorld("engineApi", {
@@ -42,12 +45,18 @@ contextBridge.exposeInMainWorld("engineApi", {
   handleInstallFinished: (cback) =>
     ipcRenderer.on("engine-install-finished", cback),
 
-  handleBtoolsDownloadInitiated: (cback) => ipcRenderer.on("btools-download-initiated", cback),
-  handleBtoolsDownloadedBatch: (cback) => ipcRenderer.on("btools-download-progress", cback),
-  handleBtoolsDownloadFinished: (cback) => ipcRenderer.on("btools-download-finished", cback),
-  handleBtoolsInstallFinished: (cback) => ipcRenderer.on("btools-install-finished", cback),
+  handleBtoolsDownloadInitiated: (cback) =>
+    ipcRenderer.on("btools-download-initiated", cback),
+  handleBtoolsDownloadedBatch: (cback) =>
+    ipcRenderer.on("btools-download-progress", cback),
+  handleBtoolsDownloadFinished: (cback) =>
+    ipcRenderer.on("btools-download-finished", cback),
+  handleBtoolsInstallFinished: (cback) =>
+    ipcRenderer.on("btools-install-finished", cback),
 
   refreshEngineInfo: () => ipcRenderer.invoke("refresh-engine-info"),
+  loadSettings: () => ipcRenderer.invoke("load-settings"),
+  refreshBtoolsInfo: () => ipcRenderer.invoke("refresh-btools-info"),
 });
 
 contextBridge.exposeInMainWorld("windowApi", {
@@ -57,6 +66,7 @@ contextBridge.exposeInMainWorld("windowApi", {
 });
 
 contextBridge.exposeInMainWorld("projectsApi", {
+  checkProjectsFolder: () => ipcRenderer.invoke("check-projects-folder"),
   refreshProjectList: () => ipcRenderer.invoke("refresh-projects"),
 });
 

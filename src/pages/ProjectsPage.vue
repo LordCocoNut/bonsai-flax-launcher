@@ -10,22 +10,35 @@
           <q-input dense :model-value="projectName" @update:model-value="formatCreateName" autofocus
             @keyup:enter="onCreateSubmit" />
         </q-card-section>
-
         <q-card-actions align="right" class="text-primary">
           <q-btn flat label="Cancel" @click="projectName = ''" v-close-popup />
           <q-btn flat @click="onCreateSubmit" label="Create" v-close-popup />
         </q-card-actions>
       </q-card>
     </q-dialog>
+    <q-dialog v-model="projectsFolderDialog" persistent>
+      <q-card style="min-width: 350px">
+        <q-card-section>
+          You didnt set your projects folder. We are going to open folder select
+          dialog, so you can choose your projects destination.
+        </q-card-section>
 
+        <q-card-actions align="center" class="text-primary">
+          <q-btn flat label="Ok" @click="ensureProjectFolder" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <div class="column text-center">
       <div class="full-width projects-header q-py-lg">
         <p>Here are your projects</p>
-        <p v-if="!SharedStore.engineInfo.installed">You dont have engine installed. Install one before opening a project.
+        <p v-if="!SharedStore.engineInfo.installed">
+          You dont have engine installed. Install one before opening a project.
         </p>
-        <q-btn v-if="SharedStore.engineInfo.installed" @click="createDialog = true" color="primary"
-          label="Create new one" />
+        <q-btn v-if="SharedStore.engineInfo.installed && SettingsStorage[settingsMap.projectsFolder]"
+          @click="createDialog = true" color="primary" label="Create new one" />
+        <q-btn v-if="!SettingsStorage[settingsMap.projectsFolder]" @click="ensureProjectFolder" color="primary"
+          label="Choose projects directory" />
       </div>
       <div class="full-width projects-list">
         <q-scroll-area class="full-width full-height">
@@ -46,17 +59,34 @@
 </template>
 
 <script setup>
-import { head, join, map, pipe, replace, split, tail, toLower, toUpper } from 'ramda';
-import { SharedStore } from 'src/utils';
-import { ref } from 'vue';
+import {
+  head,
+  join,
+  map,
+  pipe,
+  replace,
+  split,
+  tail,
+  toLower,
+  toUpper,
+} from "ramda";
+import { SharedStore, SettingsStorage, settingsMap } from "src/utils";
+
+import { ref } from "vue";
+
 
 const openProject = projectApi.openProject;
 const createProject = projectApi.createProject;
+const ensureProjectFolder = dialogAPI.ensureProjectFolder;
 
-const formatCreateName = (v) => console.log(v) || (projectName.value = pipe(replace(/\s/g, '_'), toLower)(v));
-const formatProjectName = pipe(split("_"), map((v) => `${toUpper(head(v))}${tail(v)}`), join(" "));
+const formatCreateName = (v) => projectName.value = pipe(replace(/\s/g, "_"), toLower)(v);
+const formatProjectName = pipe(
+  split("_"),
+  map((v) => `${toUpper(head(v))}${tail(v)}`),
+  join(" ")
+);
 
-
+const projectsFolderDialog = ref(!SettingsStorage[settingsMap.projectsFolder]);
 const createDialog = ref(false);
 const projectName = ref(undefined);
 
@@ -67,7 +97,7 @@ const onCreateSubmit = () => {
 
   createProject(projectName.value);
   projectName.value = undefined;
-}
+};
 
 </script>
 
@@ -88,6 +118,6 @@ const onCreateSubmit = () => {
 
 .projects-list {
   height: 70vh;
-  width:100%;
+  width: 100%;
 }
 </style>

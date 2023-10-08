@@ -1,11 +1,18 @@
 import { exec } from "child_process";
 import { BrowserWindow, app, dialog, ipcMain, nativeTheme } from "electron";
 import * as fs from "fs";
-import { ClientRequest } from "http";
+import { ClientRequest } from "https";
 import os from "os";
 import path from "path";
-import { forEach, map } from "ramda";
-import { engineInfoTemplate, ensureFolderExists, installData } from "src/utils";
+import { clone, forEach, map, set } from "ramda";
+import {
+  btoolsInfoTemplate,
+  engineInfoTemplate,
+  ensureFolderExists,
+  installData,
+  settingsManager,
+  settingsMap,
+} from "src/utils";
 import decompress from "decompress";
 
 /**
@@ -21,14 +28,19 @@ const system_engine_editor_build_tools_path = `${system_engine_editor_path}/Sour
 const flax_proj_info = `${system_engine_editor_path}/Flax.flaxproj`;
 const download_tmp_folder = `${system_engine_install_path}/download`;
 const editor_run_binary = `${system_engine_editor_path}/Binaries/Editor/Linux/Development/FlaxEditor`;
-const projects_path = `${system_engine_install_path}/projects`;
 const project_icon_path = `Cache/icon.png`;
+export const settings_path = `${system_engine_install_path}/launcher-settings.json`;
+const platform_tools_linux = `${system_engine_editor_path}/Source/Platforms/Linux`;
 
-const REQUIRED_PATHS = [
-  system_engine_install_path,
-  system_engine_editor_path,
-  projects_path,
-];
+///Build settings and assemble projects path
+const settings = settingsManager(settings_path);
+
+const REQUIRED_PATHS = [system_engine_install_path, system_engine_editor_path];
+
+const openFileDialog = (openType) =>
+  dialog.showOpenDialog(mainWindow, {
+    properties: [openType],
+  });
 
 /** @type {ClientRequest|undefined} */
 let downloadRequest;
@@ -37,9 +49,17 @@ let downloadRequest;
 /** @type {Object<string, function(project): string} */
 const COMMANDS = {
   CreateProject: (project) =>
-    exec(`${editor_run_binary} -new -project ${projects_path}/${project}`),
+    exec(
+      `${editor_run_binary} -new -project ${settings.get(
+        settingsMap.projectsFolder
+      )}/${project}`
+    ),
   OpenProject: (project) =>
-    exec(`${editor_run_binary} -project ${projects_path}/${project}`),
+    exec(
+      `${editor_run_binary} -project ${settings.get(
+        settingsMap.projectsFolder
+      )}/${project}`
+    ),
 };
 
 //Check system folders exists and create them if not
@@ -93,30 +113,39 @@ function createWindow() {
 
 function registerListeners() {
   ipcMain.on("open-file-dialog", (event) => {
-    dialog
-      .showOpenDialog(mainWindow, {
-        properties: ["openFile"],
-      })
-      .then(({ filePaths }) => {
-        filePaths.length && event.reply("on-file-select", filePaths[0]);
-      });
+    openFileDialog("openFile").then(({ filePaths }) => {
+      filePaths.length && event.reply("on-file-select", filePaths[0]);
+    });
   });
 }
 
-ipcMain.handle("refresh-projects", () =>
-  map(
-    (folder) => ({
-      name: folder,
-      icon:
-        fs.existsSync(`/${projects_path}/${folder}/${project_icon_path}`) &&
-        "data:image/png;base64," +
-          fs
-            .readFileSync(`/${projects_path}/${folder}/${project_icon_path}`)
-            .toString("base64"),
-    }),
-    fs.readdirSync(projects_path)
-  )
+ipcMain.handle(
+  "refresh-projects",
+  () =>
+    settings.get(settingsMap.projectsFolder) &&
+    map(
+      (folder) => ({
+        name: folder,
+        icon:
+          fs.existsSync(
+            `/${settings.get(
+              settingsMap.projectsFolder
+            )}/${folder}/${project_icon_path}`
+          ) &&
+          "data:image/png;base64," +
+            fs
+              .readFileSync(
+                `/${settings.get(
+                  settingsMap.projectsFolder
+                )}/${folder}/${project_icon_path}`
+              )
+              .toString("base64"),
+      }),
+      fs.readdirSync(settings.get(settingsMap.projectsFolder))
+    )
 );
+
+ipcMain.handle("load-settings", () => clone(settings.getAll()));
 
 //Build engine installation ifno
 ipcMain.handle("refresh-engine-info", () => {
@@ -133,6 +162,14 @@ ipcMain.handle("refresh-engine-info", () => {
   );
 });
 
+ipcMain.handle("refresh-btools-info", () => {
+  if (!fs.existsSync(platform_tools_linux)) {
+    return btoolsInfoTemplate(false);
+  }
+
+  return btoolsInfoTemplate(true);
+});
+
 ipcMain.handle("toggle-full-screen", () =>
   mainWindow.setFullScreen(!mainWindow.isFullScreen())
 );
@@ -145,6 +182,16 @@ ipcMain.handle("close", () => {
 
 ipcMain.handle("open-project", (e, name) => {
   COMMANDS.OpenProject(name);
+});
+
+ipcMain.handle("ensure-project-folder", () => {
+  settings.get(settingsMap.projectsFolder) ||
+    openFileDialog("openDirectory").then(({ filePaths }) => {
+      filePaths.length &&
+        settings.update(settingsMap.projectsFolder, filePaths[0]);
+      settings.save();
+      mainWindow.webContents.send("project-folder-set");
+    });
 });
 
 ipcMain.handle("create-project", (e, name) => {

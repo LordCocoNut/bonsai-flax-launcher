@@ -9,3 +9,26 @@ export const useEngineInfo = () => {
     },
   };
 };
+
+export const useBtoolsInfo = () => {
+  const refreshBtoolsInfo = engineApi.refreshBtoolsInfo;
+
+  return {
+    refreshBtoolsInfo: async () => {
+      SharedStore.btoolsInfo = await refreshBtoolsInfo();
+    },
+  };
+};
+
+
+export const useInfos = () => {
+  const { refreshBtoolsInfo } = useBtoolsInfo();
+  const { refreshInstallationInfo } = useEngineInfo();
+
+  return {
+    refreshInfos: () => {
+      refreshBtoolsInfo();
+      refreshInstallationInfo();
+    }
+  }
+};

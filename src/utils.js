@@ -1,6 +1,7 @@
-import { reactive } from "vue";
+import { computed, reactive, ref } from "vue";
 import * as fs from "fs";
 import * as https from "https";
+import { forEachObjIndexed, isEmpty, when } from "ramda";
 
 /**
  * @param {import("./router/routes").PAGE_NAMES} pageName
@@ -44,6 +45,7 @@ export const SharedStore = reactive({
   engineIsInstalling: false,
   btoolsIsInstalling: false,
   projectsFolder: undefined,
+  projectSettings: undefined,
 });
 
 /**
@@ -60,12 +62,52 @@ export const ensureFolderExists = (path) => {
  * @param {string} path
  * @returns {void}
  */
-export const ensureFileExists = (path) => {
-  fs.existsSync(path) || fs.writeFileSync(path, "");
+export const ensureFileExists = (path, customContent = "") => {
+  fs.existsSync(path) || fs.writeFileSync(path, customContent);
 };
 
-export const saveSettings = (settings) =>
-  fs.writeFileSync("", JSON.stringify(se));
+/**
+ * @enum {string}
+ */
+export const settingsMap = {
+  projectsFolder: "projectsFolder",
+};
+
+//Prepare settings storage
+export const SettingsStorage = reactive({});
+
+/**
+ * @param {string} settingsFilePath
+ * @returns
+ */
+export const settingsManager = (settingsFilePath) => {
+  ensureFileExists(settingsFilePath, '{"projectsFolder": ""}');
+  forEachObjIndexed((value, key) => (SettingsStorage[key] = value))(
+    when(isEmpty, () => ({}))(JSON.parse(fs.readFileSync(settingsFilePath)))
+  );
+
+  return {
+    save: () => {
+      fs.writeFileSync(settingsFilePath, JSON.stringify(SettingsStorage));
+    },
+    /**
+     *
+     * @param {settingsMap} key
+     * @param {void} value
+     */
+    update: (key, value) => {
+      SettingsStorage[key] = value;
+    },
+
+    /**
+     * @param {settingsMap} key
+     * @returns {*}
+     */
+    get: (key) => SettingsStorage[key],
+
+    getAll: () => SettingsStorage,
+  };
+};
 
 export const readSettings = () => JSON.parse(fs.readFileSync(""));
 
